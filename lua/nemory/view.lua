@@ -63,7 +63,7 @@ local function truncate(text, width)
   return vim.fn.strcharpart(text, 0, chars) .. "…"
 end
 
-local function footer()
+local function footer(max_width)
   local keys = config.options.view.keys
   local hints = {
     { keys.toggle, "done" },
@@ -75,25 +75,24 @@ local function footer()
     { keys.close, "close" },
   }
   local chunks = { { " ", "FloatBorder" } }
+  local used = 2
   for _, hint in ipairs(hints) do
     if hint[1] then
-      if #chunks > 1 then
-        table.insert(chunks, { "  ", "FloatBorder" })
+      local separator = #chunks > 1 and "  " or ""
+      local size = width_of(separator .. hint[1] .. " " .. hint[2])
+      if used + size > max_width then
+        break
+      end
+      used = used + size
+      if separator ~= "" then
+        table.insert(chunks, { separator, "FloatBorder" })
       end
       table.insert(chunks, { hint[1], "NemoryKey" })
       table.insert(chunks, { " " .. hint[2], "NemoryMuted" })
     end
   end
   table.insert(chunks, { " ", "FloatBorder" })
-  return chunks
-end
-
-local function chunks_width(chunks)
-  local width = 0
-  for _, chunk in ipairs(chunks) do
-    width = width + width_of(chunk[1])
-  end
-  return width
+  return chunks, used
 end
 
 local function title(items)
@@ -142,10 +141,11 @@ local function build()
     return total
   end
 
-  local foot = footer()
+  local _, footer_width = footer(math.huge)
   local minimum = math.max(64, math.floor(vim.o.columns * 0.5))
-  local target = math.max(table_width(), chunks_width(foot) + 2, minimum)
+  local target = math.max(table_width(), footer_width + 2, minimum)
   target = math.min(target, vim.o.columns - 4)
+  local foot = footer(target - 2)
   widths[2] = math.max(widths[2] + target - table_width(), 8)
 
   local lines, marks = {}, {}
