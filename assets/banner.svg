@@ -1,0 +1,123 @@
+<svg width="920" height="360" viewBox="0 0 920 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="920" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16161e"/>
+      <stop offset="1" stop-color="#1e2030"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7aa2f7"/>
+      <stop offset="1" stop-color="#bb9af7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7aa2f7" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7aa2f7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="920" height="360" rx="18" fill="url(#bg)"/>
+
+  <text x="72" y="160" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="60" fill="url(#accent)">nemory</text>
+  <text x="74" y="194" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="15" fill="#565f89">a memory for Neovim</text>
+  <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#737aa2">
+    <text x="74" y="236"><tspan fill="#7aa2f7">&#9679;</tspan> weekly work log</text>
+    <text x="74" y="260"><tspan fill="#bb9af7">&#9679;</tspan> todos with dates</text>
+    <text x="74" y="284"><tspan fill="#9ece6a">&#9679;</tspan> synced with git</text>
+  </g>
+
+  <g stroke="#3b4261" stroke-width="3">
+    <circle cx="590" cy="104" r="34"/>
+    <circle cx="640" cy="70" r="44"/>
+    <circle cx="712" cy="58" r="50"/>
+    <circle cx="784" cy="72" r="44"/>
+    <circle cx="830" cy="108" r="34"/>
+    <circle cx="790" cy="138" r="32"/>
+    <circle cx="710" cy="146" r="34"/>
+    <circle cx="632" cy="138" r="30"/>
+  </g>
+  <g fill="#1f2335">
+    <circle cx="590" cy="104" r="34"/>
+    <circle cx="640" cy="70" r="44"/>
+    <circle cx="712" cy="58" r="50"/>
+    <circle cx="784" cy="72" r="44"/>
+    <circle cx="830" cy="108" r="34"/>
+    <circle cx="790" cy="138" r="32"/>
+    <circle cx="710" cy="146" r="34"/>
+    <circle cx="632" cy="138" r="30"/>
+    <rect x="604" y="76" width="212" height="72"/>
+  </g>
+
+  <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#a9b1d6" opacity="0">
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.05;0.45;0.5;1" dur="10s" repeatCount="indefinite"/>
+    <text x="628" y="70" fill="#bb9af7">todo.md</text>
+    <text x="628" y="96"><tspan fill="#565f89">[ ]</tspan> renew passport</text>
+    <text x="628" y="118"><tspan fill="#565f89">[ ]</tspan> call dentist</text>
+    <text x="628" y="140"><tspan fill="#565f89">[ ]</tspan> fix bike</text>
+    <g fill="#9ece6a" font-weight="bold">
+      <text x="636" y="118" opacity="0">x<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.15;0.17;0.48;0.5;1" dur="10s" repeatCount="indefinite"/></text>
+      <text x="636" y="96" opacity="0">x<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.28;0.3;0.48;0.5;1" dur="10s" repeatCount="indefinite"/></text>
+    </g>
+  </g>
+
+  <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#a9b1d6" opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.5;0.55;0.95;1" dur="10s" repeatCount="indefinite"/>
+    <text x="628" y="70" fill="#7aa2f7">## monday</text>
+    <text x="628" y="96" opacity="0">- shipped the API<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.6;0.62;0.95;1" dur="10s" repeatCount="indefinite"/></text>
+    <text x="628" y="118" opacity="0">- reviewed 3 PRs<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.7;0.72;0.95;1" dur="10s" repeatCount="indefinite"/></text>
+    <text x="628" y="140" opacity="0">- fixed the flaky spec<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.8;0.82;0.95;1" dur="10s" repeatCount="indefinite"/></text>
+  </g>
+
+  <g fill="#1f2335" stroke="#3b4261" stroke-width="2.5">
+    <circle cx="596" cy="176" r="9">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="579" cy="196" r="6">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="566" cy="212" r="4">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <line x1="420" y1="322" x2="820" y2="322" stroke="#2f334d" stroke-width="5" stroke-linecap="round"/>
+
+  <path d="M 478 322 C 478 282 492 262 530 258 C 568 262 582 282 582 322 Z" fill="#545c7e"/>
+  <rect x="522" y="240" width="16" height="22" rx="6" fill="#545c7e"/>
+  <circle cx="530" cy="228" r="24" fill="#545c7e"/>
+  <path d="M 506 222 C 506 200 554 198 554 220 C 546 212 516 210 506 222 Z" fill="#414868"/>
+  <g fill="#1a1b26">
+    <ellipse cx="522" cy="228" rx="2.4" ry="2.4">
+      <animate attributeName="ry" values="2.4;2.4;0.3;2.4;2.4" keyTimes="0;0.9;0.93;0.96;1" dur="4.5s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="538" cy="228" rx="2.4" ry="2.4">
+      <animate attributeName="ry" values="2.4;2.4;0.3;2.4;2.4" keyTimes="0;0.9;0.93;0.96;1" dur="4.5s" repeatCount="indefinite"/>
+    </ellipse>
+    <animateTransform attributeName="transform" type="translate" values="0 0;3 -2;3 -2;0 0;0 0" keyTimes="0;0.2;0.5;0.7;1" dur="6s" repeatCount="indefinite"/>
+  </g>
+  <path d="M 524 242 Q 530 245 536 242" stroke="#1a1b26" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 572 290 C 576 268 562 256 548 254" stroke="#545c7e" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="543" cy="252" r="7" fill="#636da6">
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -1.5;0 0" dur="3s" repeatCount="indefinite"/>
+  </circle>
+
+  <ellipse cx="530" cy="292" rx="60" ry="26" fill="url(#glow)"/>
+  <path d="M 472 320 L 480 268 L 580 268 L 588 320 Z" fill="#24283b" stroke="#3b4261" stroke-width="2"/>
+  <g transform="translate(530 293)">
+    <path d="M -9 10 L -9 -10 L 9 10 L 9 -10" stroke="url(#accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0.55;1;0.55" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <rect x="460" y="318" width="140" height="6" rx="3" fill="#3b4261"/>
+
+  <path d="M 680 294 L 704 294 L 702 320 L 682 320 Z" fill="#414868"/>
+  <path d="M 704 300 C 714 300 714 312 703 312" stroke="#414868" stroke-width="3"/>
+  <g stroke="#565f89" stroke-width="2" stroke-linecap="round">
+    <path d="M 688 286 C 684 280 692 276 688 270">
+      <animate attributeName="opacity" values="0;0.8;0" dur="3s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0 2;0 -4" dur="3s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 697 286 C 693 280 701 276 697 270">
+      <animate attributeName="opacity" values="0;0.8;0" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0 2;0 -4" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>
