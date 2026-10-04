@@ -72,11 +72,12 @@ back is quick.
 `<leader>nt` opens an overview table in a floating window.
 
 ```
- Status  Todo            Created     Done        Age
- ───────────────────────────────────────────────────
- [ ]     Renew passport  2026-10-04              0d
- [ ]     Fix bike tyre   2026-10-02              2d
- [x]     Call dentist    2026-09-28  2026-10-01  3d
+╭──────────────────────── Todo · 2 open ────────────────────────╮
+│     Todo                     Created      Done         Age     │
+│ ○   Fix bike tyre            2026-10-02                2d      │
+│ ○   Renew passport           2026-10-04                0d      │
+│ ✓   Call dentist             2026-09-28   2026-10-01   3d      │
+╰─ x done  a add  e edit  dd delete  H hide done  o file  q close ─╯
 ```
 
 Open todos come first, oldest at the top. Age shows how long a todo has been open, or how long
