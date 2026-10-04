@@ -546,7 +546,7 @@ function M.add(done)
 end
 
 local function rename(item)
-  vim.ui.input({ prompt = "Rename todo: ", default = item.title }, function(text)
+  vim.ui.input({ prompt = "Rename todo: ", default = todo.input(item) }, function(text)
     if text then
       todo.rename(item, text)
       render()

@@ -122,13 +122,26 @@ function M.list()
   return todos
 end
 
-function M.add(input, done)
+local function parse_input(input)
   local padded = " " .. (input or "")
   local tags = {}
   for tag in padded:gmatch(tag_pattern) do
     table.insert(tags, tag)
   end
   local title = vim.trim((padded:gsub("%s#%a[%w_-]*", ""):gsub("%s+", " ")))
+  return title, tags
+end
+
+function M.input(todo)
+  local parts = { todo.title }
+  for _, tag in ipairs(todo.tags) do
+    table.insert(parts, "#" .. tag)
+  end
+  return table.concat(parts, " ")
+end
+
+function M.add(input, done)
+  local title, tags = parse_input(input)
   if title == "" then
     return nil
   end
@@ -167,13 +180,14 @@ function M.toggle(todo)
   end)
 end
 
-function M.rename(todo, title)
-  title = vim.trim(title or "")
+function M.rename(todo, input)
+  local title, tags = parse_input(input)
   if title == "" then
     return
   end
   update(todo, function(fresh)
     fresh.title = title
+    fresh.tags = tags
   end)
 end
 

@@ -86,6 +86,8 @@ Prep the demo #work #urgent
 
 Only words that start with a letter become tags. So `Review PR #482` keeps `#482` in the title.
 
+To change the tags later, press `r`. The title shows up with its tags, like `Prep the demo #work`. Add, change or remove tags right there.
+
 Press `t` in the table to filter by tag. Press it again for the next tag, until you are back
 at all todos.
 
@@ -179,7 +181,7 @@ Keys inside the window:
 | `x` | Mark as done or not done | |
 | `a` | Add a todo | |
 | `↵` | Open the todo and its notes | Open the todo and its notes |
-| `r` | Rename | Rename |
+| `r` | Rename and edit tags | Rename and edit tags |
 | `dd` | Delete | |
 | `H` | Hide or show done todos | |
 | `t` | Filter by tag | Filter by tag |
