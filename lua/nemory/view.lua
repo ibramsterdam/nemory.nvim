@@ -309,7 +309,7 @@ local function build()
   local _, footer_width = footer(math.huge)
   local minimum = math.max(64, math.floor(vim.o.columns * 0.5))
   local title = tabs(spec.label)
-  local target = math.max(table_width(), footer_width + 2, chunks_width(title) + 4, minimum)
+  local target = math.max(table_width(), footer_width + 2, chunks_width(title) + 4, minimum) + 4
   target = math.min(math.max(target, state.width), vim.o.columns - 4)
   state.width = target
   if widths[spec.flex] then
@@ -376,7 +376,7 @@ local function build()
 end
 
 local function layout(view)
-  local height = math.max(math.min(#view.lines, vim.o.lines - 6), 1)
+  local height = math.max(math.min(math.max(#view.lines + 1, 12), vim.o.lines - 6), 1)
   return {
     relative = "editor",
     width = view.width,
