@@ -358,7 +358,10 @@ local function build()
     end
   end
   if #spec.rows == 0 then
-    add_line(" " .. spec.empty, "NemoryMuted")
+    local indent = math.max(math.floor((target - width_of(spec.empty)) / 2), 1)
+    add_line("")
+    add_line(string.rep(" ", indent) .. spec.empty, "NemoryMuted")
+    add_line("")
   end
 
   return {
