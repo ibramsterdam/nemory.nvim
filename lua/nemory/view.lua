@@ -630,6 +630,10 @@ function M.open(mode)
   if state.hide_completed == nil then
     state.hide_completed = config.options.view.hide_completed
   end
+  if vim.api.nvim_win_is_valid(state.win) and (mode == nil or mode == state.mode) then
+    close()
+    return
+  end
   if mode and mode ~= state.mode then
     state.mode = mode
     state.cursor = 1

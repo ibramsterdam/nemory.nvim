@@ -162,6 +162,8 @@ on the next change.
 | `<leader>ns` | `:Nemory search` | Search all notes (Telescope, if installed) |
 | | `:Nemory sync` | Pull and push now |
 
+The mappings toggle. Press `<leader>nt` again to close the table. Press `<leader>nw` while the table is open to switch to your week.
+
 Keys inside the window:
 
 | Key | Todos | Week |
