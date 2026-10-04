@@ -7,16 +7,19 @@ local M = {}
 
 local ns = vim.api.nvim_create_namespace("nemory")
 local gap = "   "
+local views = { "todos", "week" }
+local labels = { todos = "Todos", week = "Week" }
 
 local state = {
   buf = -1,
   win = -1,
-  mode = "todos",
+  mode = nil,
   week = 0,
   tag = nil,
   hide_completed = nil,
   items = {},
   cursor = 1,
+  width = 0,
 }
 
 local render
@@ -34,6 +37,8 @@ local function set_highlights()
   vim.api.nvim_set_hl(0, "NemoryMuted", { link = "Comment", default = true })
   vim.api.nvim_set_hl(0, "NemoryTag", { link = "Constant", default = true })
   vim.api.nvim_set_hl(0, "NemoryKey", { link = "Special", default = true })
+  vim.api.nvim_set_hl(0, "NemoryTabActive", { fg = title.fg, bold = true })
+  vim.api.nvim_set_hl(0, "NemoryTab", { link = "Comment", default = true })
 end
 
 local function width_of(text)
@@ -93,10 +98,6 @@ local function all_tags()
   end
   table.sort(tags)
   return tags
-end
-
-local function tag_suffix()
-  return state.tag and (" · #" .. state.tag) or ""
 end
 
 local function week_days()
@@ -165,7 +166,7 @@ local function todo_spec()
     header = { " ", "Todo", " ", "Tags", "Created", "Done", "Age" },
     rows = rows,
     flex = 2,
-    title = string.format(" Todo · %d open%s ", open, tag_suffix()),
+    label = string.format("Todos · %d open", open),
     empty = key and ("Nothing to do. Press " .. key .. " to add a todo.") or "Nothing to do.",
   }
 end
@@ -193,13 +194,40 @@ local function week_spec()
   return {
     rows = rows,
     flex = 2,
-    title = " " .. week_title(monday) .. tag_suffix() .. " ",
+    label = week_title(monday),
     empty = "Nothing finished this week.",
   }
 end
 
 local function display_key(key)
-  return (key:gsub("<[Cc][Rr]>", "↵"))
+  return (key:gsub("<[Cc][Rr]>", "↵"):gsub("<[Tt][Aa][Bb]>", "⇥"))
+end
+
+local function tabs(label)
+  local chunks = {}
+  for _, name in ipairs(views) do
+    if #chunks > 0 then
+      table.insert(chunks, { "─", "FloatBorder" })
+    end
+    if name == state.mode then
+      table.insert(chunks, { " " .. label .. " ", "NemoryTabActive" })
+    else
+      table.insert(chunks, { " " .. labels[name] .. " ", "NemoryTab" })
+    end
+  end
+  if state.tag then
+    table.insert(chunks, { "─", "FloatBorder" })
+    table.insert(chunks, { " #" .. state.tag .. " ", "NemoryTag" })
+  end
+  return chunks
+end
+
+local function chunks_width(chunks)
+  local width = 0
+  for _, chunk in ipairs(chunks) do
+    width = width + width_of(chunk[1])
+  end
+  return width
 end
 
 local function hints()
@@ -211,7 +239,7 @@ local function hints()
       { keys.yank, "copy" },
       { keys.open, "open" },
       { keys.filter, "tag" },
-      { keys.week, "todos" },
+      { keys.next_view, "switch" },
       { keys.close, "close" },
     }
   end
@@ -223,7 +251,7 @@ local function hints()
     { keys.delete, "delete" },
     { keys.toggle_completed, state.hide_completed and "show done" or "hide done" },
     { keys.filter, "tag" },
-    { keys.week, "week" },
+    { keys.next_view, "switch" },
     { keys.close, "close" },
   }
 end
@@ -280,8 +308,10 @@ local function build()
 
   local _, footer_width = footer(math.huge)
   local minimum = math.max(64, math.floor(vim.o.columns * 0.5))
-  local target = math.max(table_width(), footer_width + 2, width_of(spec.title) + 4, minimum)
-  target = math.min(target, vim.o.columns - 4)
+  local title = tabs(spec.label)
+  local target = math.max(table_width(), footer_width + 2, chunks_width(title) + 4, minimum)
+  target = math.min(math.max(target, state.width), vim.o.columns - 4)
+  state.width = target
   if widths[spec.flex] then
     widths[spec.flex] = math.max(widths[spec.flex] + target - table_width(), 8)
   end
@@ -337,7 +367,7 @@ local function build()
     items = items,
     header = spec.header ~= nil,
     width = target,
-    title = spec.title,
+    title = title,
     footer = (footer(target - 2)),
   }
 end
@@ -350,7 +380,7 @@ local function layout(view)
     height = height,
     row = math.floor((vim.o.lines - height) / 2) - 1,
     col = math.floor((vim.o.columns - view.width) / 2),
-    title = { { view.title, "FloatTitle" } },
+    title = view.title,
     title_pos = "center",
     footer = view.footer,
     footer_pos = "center",
@@ -560,6 +590,18 @@ local function yank_week()
   vim.notify("nemory: copied " .. week_title(monday))
 end
 
+local function switch(step)
+  local index = 1
+  for i, name in ipairs(views) do
+    if name == state.mode then
+      index = i
+    end
+  end
+  state.mode = views[(index - 1 + step) % #views + 1]
+  state.cursor = 1
+  render()
+end
+
 local function with_mode(mode, action)
   return function()
     if state.mode == mode then
@@ -601,11 +643,11 @@ local function set_keymaps(buf)
       cycle_tag()
       render()
     end,
-    week = function()
-      state.mode = state.mode == "week" and "todos" or "week"
-      state.week = 0
-      state.cursor = 1
-      render()
+    next_view = function()
+      switch(1)
+    end,
+    prev_view = function()
+      switch(-1)
     end,
     prev_week = with_mode("week", function()
       state.week = state.week - 1
@@ -630,6 +672,7 @@ function M.open(mode)
   if state.hide_completed == nil then
     state.hide_completed = config.options.view.hide_completed
   end
+  state.mode = state.mode or config.options.view.default
   if vim.api.nvim_win_is_valid(state.win) and (mode == nil or mode == state.mode) then
     close()
     return
@@ -638,16 +681,14 @@ function M.open(mode)
     state.mode = mode
     state.cursor = 1
   end
-  if state.mode == "week" then
-    state.week = 0
-  end
-
   if vim.api.nvim_win_is_valid(state.win) then
     vim.api.nvim_set_current_win(state.win)
     render()
     return
   end
 
+  state.week = 0
+  state.width = 0
   set_highlights()
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].bufhidden = "wipe"

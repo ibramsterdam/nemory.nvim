@@ -10,13 +10,13 @@ M.defaults = {
     pull_interval = 60,
   },
   keys = {
-    todos = "<leader>nt",
+    open = "<leader>nn",
     add_todo = "<leader>na",
     log_done = "<leader>nd",
-    week = "<leader>nw",
     search = "<leader>ns",
   },
   view = {
+    default = "todos",
     hide_completed = false,
     keys = {
       toggle = "x",
@@ -26,7 +26,8 @@ M.defaults = {
       delete = "dd",
       toggle_completed = "H",
       filter = "t",
-      week = "w",
+      next_view = "<Tab>",
+      prev_view = "<S-Tab>",
       prev_week = "[",
       next_week = "]",
       yank = "y",

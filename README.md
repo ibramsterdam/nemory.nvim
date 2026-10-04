@@ -46,20 +46,27 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 That's it. Your todos live in `~/notes/todos`.
 
 - Press `<leader>na` and type `Fix the flaky spec #work`.
-- Press `<leader>nt` to see all your todos.
-- Press `<leader>nw` to see what you finished this week.
+- Press `<leader>nn` to open nemory. Press it again to close it.
+- Press `Tab` inside nemory to switch between your todos and your week.
+
+## One window, two views
+
+`<leader>nn` opens nemory. It has two views, shown as tabs in the title:
+
+- **Todos**: everything you still have to do, and what you finished.
+- **Week**: what you finished this week, grouped per day.
+
+Press `Tab` or `Shift-Tab` to switch. nemory remembers the last view you used.
 
 ## Todos
 
-`<leader>nt` opens the overview table.
-
 ```
-╭──────────────────────────── Todo · 2 open ─────────────────────────────╮
+╭──────────────────────── Todos · 2 open ─ Week ─────────────────────────╮
 │     Todo                      Tags      Created      Done         Age  │
 │ ○   Write migration plan  ≡   #work     2026-10-03                1d   │
 │ ○   Renew passport            #private  2026-10-02                2d   │
 │ ✓   Ship payments API     ≡   #work     2026-09-25   2026-10-01   6d   │
-╰─ x done  a add  ↵ open  r rename  dd delete  H hide done  t tag  w week ─╯
+╰─ x done  a add  ↵ open  r rename  dd delete  H hide done  t tag  ⇥ switch ─╯
 ```
 
 - Open todos come first, oldest at the top.
@@ -84,17 +91,17 @@ at all todos.
 
 ## Your week
 
-`<leader>nw` shows everything you finished this week, grouped per day.
+The week view shows everything you finished, grouped per day.
 
 ```
-╭──────────── Week 40 · Sep 28 to Oct 4 ────────────╮
+╭──────── Todos ─ Week 40 · Sep 28 to Oct 4 ────────╮
 │ Tuesday · Sep 29                                  │
 │   ✓   Fix flaky checkout spec          ≡   #work  │
 │   ✓   Review PR #482                       #work  │
 │                                                   │
 │ Thursday · Oct 1                                  │
 │   ✓   Ship payments API                ≡   #work  │
-╰─ [ prev  ] next  y copy  ↵ open  t tag  w todos ──╯
+╰─ [ prev  ] next  y copy  ↵ open  t tag  ⇥ switch ─╯
 ```
 
 - `[` and `]` go to the previous or next week.
@@ -155,14 +162,15 @@ on the next change.
 
 | Mapping | Command | Action |
 | --- | --- | --- |
-| `<leader>nt` | `:Nemory todos` | Open the todo table |
+| `<leader>nn` | `:Nemory open` | Open or close nemory |
 | `<leader>na` | `:Nemory add` | Add a todo from anywhere |
 | `<leader>nd` | `:Nemory done` | Log something you did, already done |
-| `<leader>nw` | `:Nemory week` | Open this week |
 | `<leader>ns` | `:Nemory search` | Search all notes (Telescope, if installed) |
+| | `:Nemory todos` | Open nemory on the todos |
+| | `:Nemory week` | Open nemory on this week |
 | | `:Nemory sync` | Pull and push now |
 
-The mappings toggle. Press `<leader>nt` again to close the table. Press `<leader>nw` while the table is open to switch to your week.
+Want a direct key for one view? Map `todos` or `week` in `keys`, for example `todos = "<leader>nt"`.
 
 Keys inside the window:
 
@@ -175,7 +183,8 @@ Keys inside the window:
 | `dd` | Delete | |
 | `H` | Hide or show done todos | |
 | `t` | Filter by tag | Filter by tag |
-| `w` | Go to the week | Go to the todos |
+| `Tab` | Next view | Next view |
+| `Shift-Tab` | Previous view | Previous view |
 | `[` `]` | | Previous or next week |
 | `y` | | Copy the week as markdown |
 | `q` | Close | Close |
@@ -195,13 +204,13 @@ require("nemory").setup({
     pull_interval = 60,
   },
   keys = {
-    todos = "<leader>nt",
+    open = "<leader>nn",
     add_todo = "<leader>na",
     log_done = "<leader>nd",
-    week = "<leader>nw",
     search = "<leader>ns",
   },
   view = {
+    default = "todos",
     hide_completed = false,
     keys = {
       toggle = "x",
@@ -211,7 +220,8 @@ require("nemory").setup({
       delete = "dd",
       toggle_completed = "H",
       filter = "t",
-      week = "w",
+      next_view = "<Tab>",
+      prev_view = "<S-Tab>",
       prev_week = "[",
       next_week = "]",
       yank = "y",
@@ -222,6 +232,7 @@ require("nemory").setup({
 ```
 
 - Set any key to `false` to turn it off.
+- `view.default` is the view nemory opens on the first time: `"todos"` or `"week"`.
 - `default_tags` are used when you add a todo without tags. For example `{ "work" }`.
 
 ## The name

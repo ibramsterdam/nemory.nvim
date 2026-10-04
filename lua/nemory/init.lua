@@ -3,6 +3,12 @@ local config = require("nemory.config")
 local M = {}
 
 local actions = {
+  open = {
+    desc = "Toggle nemory",
+    run = function()
+      require("nemory.view").open()
+    end,
+  },
   todos = {
     desc = "Open todos",
     run = function()
@@ -49,6 +55,7 @@ local actions = {
 }
 
 local commands = {
+  open = "open",
   todos = "todos",
   add = "add_todo",
   done = "log_done",
