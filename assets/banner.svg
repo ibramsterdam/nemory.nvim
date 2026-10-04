@@ -19,8 +19,8 @@
   <text x="72" y="160" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="60" fill="url(#accent)">nemory</text>
   <text x="74" y="194" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="15" fill="#565f89">a memory for Neovim</text>
   <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#737aa2">
-    <text x="74" y="236"><tspan fill="#7aa2f7">&#9679;</tspan> weekly work log</text>
-    <text x="74" y="260"><tspan fill="#bb9af7">&#9679;</tspan> todos with dates</text>
+    <text x="74" y="236"><tspan fill="#7aa2f7">&#9679;</tspan> todos with notes</text>
+    <text x="74" y="260"><tspan fill="#bb9af7">&#9679;</tspan> a weekly log of what you did</text>
     <text x="74" y="284"><tspan fill="#9ece6a">&#9679;</tspan> synced with git</text>
   </g>
 
@@ -48,7 +48,7 @@
 
   <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#a9b1d6" opacity="0">
     <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.05;0.45;0.5;1" dur="10s" repeatCount="indefinite"/>
-    <text x="628" y="70" fill="#bb9af7">todo.md</text>
+    <text x="628" y="70" fill="#bb9af7">todos</text>
     <text x="628" y="96"><tspan fill="#565f89">[ ]</tspan> renew passport</text>
     <text x="628" y="118"><tspan fill="#565f89">[ ]</tspan> call dentist</text>
     <text x="628" y="140"><tspan fill="#565f89">[ ]</tspan> fix bike</text>
@@ -60,7 +60,7 @@
 
   <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="13" fill="#a9b1d6" opacity="0">
     <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.5;0.55;0.95;1" dur="10s" repeatCount="indefinite"/>
-    <text x="628" y="70" fill="#7aa2f7">## monday</text>
+    <text x="628" y="70" fill="#7aa2f7">done this week</text>
     <text x="628" y="96" opacity="0">- shipped the API<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.6;0.62;0.95;1" dur="10s" repeatCount="indefinite"/></text>
     <text x="628" y="118" opacity="0">- reviewed 3 PRs<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.7;0.72;0.95;1" dur="10s" repeatCount="indefinite"/></text>
     <text x="628" y="140" opacity="0">- fixed the flaky spec<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.8;0.82;0.95;1" dur="10s" repeatCount="indefinite"/></text>

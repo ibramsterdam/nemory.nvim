@@ -3,22 +3,28 @@ local config = require("nemory.config")
 local M = {}
 
 local actions = {
-  worklog = {
-    desc = "Open this week's work log",
-    run = function()
-      require("nemory.worklog").open()
-    end,
-  },
   todos = {
-    desc = "Open todo overview",
+    desc = "Open todos",
     run = function()
-      require("nemory.view").open()
+      require("nemory.view").open("todos")
     end,
   },
   add_todo = {
     desc = "Add a todo",
     run = function()
-      require("nemory.view").add()
+      require("nemory.view").add(false)
+    end,
+  },
+  log_done = {
+    desc = "Log something you did",
+    run = function()
+      require("nemory.view").add(true)
+    end,
+  },
+  week = {
+    desc = "Open this week",
+    run = function()
+      require("nemory.view").open("week")
     end,
   },
   search = {
@@ -43,9 +49,10 @@ local actions = {
 }
 
 local commands = {
-  worklog = "worklog",
   todos = "todos",
   add = "add_todo",
+  done = "log_done",
+  week = "week",
   search = "search",
   sync = "sync",
 }

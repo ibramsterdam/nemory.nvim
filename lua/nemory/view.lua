@@ -6,16 +6,20 @@ local todo = require("nemory.todo")
 local M = {}
 
 local ns = vim.api.nvim_create_namespace("nemory")
-local first_row = 2
 local gap = "   "
-local columns = { " ", "Todo", "Created", "Done", "Age" }
 
 local state = {
   buf = -1,
   win = -1,
-  rows = {},
+  mode = "todos",
+  week = 0,
+  tag = nil,
   hide_completed = nil,
+  items = {},
+  cursor = 1,
 }
+
+local render
 
 local function set_highlights()
   local title = vim.api.nvim_get_hl(0, { name = "Title", link = false })
@@ -24,10 +28,27 @@ local function set_highlights()
   local header = { fg = title.fg, sp = border.fg, bold = true, underline = true }
   vim.api.nvim_set_hl(0, "NemoryHeader", header)
   vim.api.nvim_set_hl(0, "NemoryDone", { fg = comment.fg, strikethrough = true })
+  vim.api.nvim_set_hl(0, "NemoryDay", { link = "Title", default = true })
   vim.api.nvim_set_hl(0, "NemoryCheck", { link = "DiagnosticOk", default = true })
   vim.api.nvim_set_hl(0, "NemoryOpen", { link = "Comment", default = true })
   vim.api.nvim_set_hl(0, "NemoryMuted", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "NemoryTag", { link = "Constant", default = true })
   vim.api.nvim_set_hl(0, "NemoryKey", { link = "Special", default = true })
+end
+
+local function width_of(text)
+  return vim.fn.strdisplaywidth(text)
+end
+
+local function truncate(text, width)
+  if width_of(text) <= width then
+    return text
+  end
+  local chars = vim.fn.strchars(text)
+  while chars > 0 and width_of(vim.fn.strcharpart(text, 0, chars) .. "…") > width do
+    chars = chars - 1
+  end
+  return vim.fn.strcharpart(text, 0, chars) .. "…"
 end
 
 local function sorted(todos)
@@ -48,38 +69,173 @@ local function age(item)
   return days and (days .. "d") or ""
 end
 
-local function width_of(text)
-  return vim.fn.strdisplaywidth(text)
+local function has_tag(item)
+  return state.tag == nil or vim.tbl_contains(item.tags, state.tag)
 end
 
-local function truncate(text, width)
-  if width_of(text) <= width then
-    return text
+local function tags_text(item)
+  local tags = {}
+  for _, tag in ipairs(item.tags) do
+    table.insert(tags, "#" .. tag)
   end
-  local chars = vim.fn.strchars(text)
-  while chars > 0 and width_of(vim.fn.strcharpart(text, 0, chars) .. "…") > width do
-    chars = chars - 1
+  return table.concat(tags, " ")
+end
+
+local function all_tags()
+  local seen, tags = {}, {}
+  for _, item in ipairs(todo.list()) do
+    for _, tag in ipairs(item.tags) do
+      if not seen[tag] then
+        seen[tag] = true
+        table.insert(tags, tag)
+      end
+    end
   end
-  return vim.fn.strcharpart(text, 0, chars) .. "…"
+  table.sort(tags)
+  return tags
+end
+
+local function tag_suffix()
+  return state.tag and (" · #" .. state.tag) or ""
+end
+
+local function week_days()
+  local monday = date.week_start(os.time()) + state.week * 7 * date.day
+  local by_date = {}
+  for _, item in ipairs(todo.list()) do
+    if item.completed and has_tag(item) then
+      by_date[item.completed] = by_date[item.completed] or {}
+      table.insert(by_date[item.completed], item)
+    end
+  end
+  local days = {}
+  for offset = 0, 6 do
+    local time = monday + offset * date.day
+    local items = by_date[os.date("%Y-%m-%d", time)] or {}
+    table.sort(items, function(a, b)
+      return (a.created or "") < (b.created or "")
+    end)
+    table.insert(days, { time = time, items = items })
+  end
+  return monday, days
+end
+
+local function week_title(monday)
+  local sunday = monday + 6 * date.day
+  local week = tonumber(os.date("%V", monday))
+  return string.format("Week %d · %s to %s", week, date.short(monday), date.short(sunday))
+end
+
+local function todo_spec()
+  local rows, open = {}, 0
+  for _, item in ipairs(sorted(todo.list())) do
+    if has_tag(item) then
+      if not item.done then
+        open = open + 1
+      end
+      if not (state.hide_completed and item.done) then
+        local muted = item.done and "NemoryMuted" or nil
+        table.insert(rows, {
+          item = item,
+          cells = {
+            item.done and "✓" or "○",
+            item.title,
+            #item.body > 0 and "≡" or "",
+            tags_text(item),
+            item.created or "",
+            item.completed or "",
+            age(item),
+          },
+          groups = {
+            item.done and "NemoryCheck" or "NemoryOpen",
+            item.done and "NemoryDone" or nil,
+            "NemoryMuted",
+            muted or "NemoryTag",
+            muted,
+            muted,
+            muted,
+          },
+        })
+      end
+    end
+  end
+
+  local key = config.options.view.keys.add
+  return {
+    header = { " ", "Todo", " ", "Tags", "Created", "Done", "Age" },
+    rows = rows,
+    flex = 2,
+    title = string.format(" Todo · %d open%s ", open, tag_suffix()),
+    empty = key and ("Nothing to do. Press " .. key .. " to add a todo.") or "Nothing to do.",
+  }
+end
+
+local function week_spec()
+  local monday, days = week_days()
+  local rows = {}
+  for _, day in ipairs(days) do
+    if #day.items > 0 then
+      if #rows > 0 then
+        table.insert(rows, { line = "" })
+      end
+      local heading = " " .. os.date("%A", day.time) .. " · " .. date.short(day.time)
+      table.insert(rows, { line = heading, group = "NemoryDay" })
+      for _, item in ipairs(day.items) do
+        table.insert(rows, {
+          item = item,
+          cells = { "  ✓", item.title, #item.body > 0 and "≡" or "", tags_text(item) },
+          groups = { "NemoryCheck", nil, "NemoryMuted", "NemoryTag" },
+        })
+      end
+    end
+  end
+
+  return {
+    rows = rows,
+    flex = 2,
+    title = " " .. week_title(monday) .. tag_suffix() .. " ",
+    empty = "Nothing finished this week.",
+  }
+end
+
+local function display_key(key)
+  return (key:gsub("<[Cc][Rr]>", "↵"))
+end
+
+local function hints()
+  local keys = config.options.view.keys
+  if state.mode == "week" then
+    return {
+      { keys.prev_week, "prev" },
+      { keys.next_week, "next" },
+      { keys.yank, "copy" },
+      { keys.open, "open" },
+      { keys.filter, "tag" },
+      { keys.week, "todos" },
+      { keys.close, "close" },
+    }
+  end
+  return {
+    { keys.toggle, "done" },
+    { keys.add, "add" },
+    { keys.open, "open" },
+    { keys.rename, "rename" },
+    { keys.delete, "delete" },
+    { keys.toggle_completed, state.hide_completed and "show done" or "hide done" },
+    { keys.filter, "tag" },
+    { keys.week, "week" },
+    { keys.close, "close" },
+  }
 end
 
 local function footer(max_width)
-  local keys = config.options.view.keys
-  local hints = {
-    { keys.toggle, "done" },
-    { keys.add, "add" },
-    { keys.edit, "edit" },
-    { keys.delete, "delete" },
-    { keys.toggle_completed, state.hide_completed and "show done" or "hide done" },
-    { keys.open_file, "file" },
-    { keys.close, "close" },
-  }
   local chunks = { { " ", "FloatBorder" } }
   local used = 2
-  for _, hint in ipairs(hints) do
+  for _, hint in ipairs(hints()) do
     if hint[1] then
+      local key = display_key(hint[1])
       local separator = #chunks > 1 and "  " or ""
-      local size = width_of(separator .. hint[1] .. " " .. hint[2])
+      local size = width_of(separator .. key .. " " .. hint[2])
       if used + size > max_width then
         break
       end
@@ -87,7 +243,7 @@ local function footer(max_width)
       if separator ~= "" then
         table.insert(chunks, { separator, "FloatBorder" })
       end
-      table.insert(chunks, { hint[1], "NemoryKey" })
+      table.insert(chunks, { key, "NemoryKey" })
       table.insert(chunks, { " " .. hint[2], "NemoryMuted" })
     end
   end
@@ -95,45 +251,26 @@ local function footer(max_width)
   return chunks, used
 end
 
-local function title(items)
-  local open = 0
-  for _, item in ipairs(items) do
-    if not item.done then
-      open = open + 1
-    end
-  end
-  return string.format(" Todo · %d open ", open)
-end
-
 local function build()
-  local items = {}
-  local all = {}
-  for _, item in ipairs(sorted(todo.list())) do
-    table.insert(all, item)
-    if not (state.hide_completed and item.done) then
-      table.insert(items, item)
-    end
-  end
-
-  local cells = {}
-  for _, item in ipairs(items) do
-    table.insert(cells, {
-      item.done and "✓" or "○",
-      item.text,
-      item.created or "",
-      item.completed or "",
-      age(item),
-    })
-  end
+  local spec = state.mode == "week" and week_spec() or todo_spec()
 
   local widths = {}
-  for _, row in ipairs(vim.list_extend({ columns }, cells)) do
-    for i, cell in ipairs(row) do
+  local tables = spec.header and { spec.header } or {}
+  for _, row in ipairs(spec.rows) do
+    if row.cells then
+      table.insert(tables, row.cells)
+    end
+  end
+  for _, cells in ipairs(tables) do
+    for i, cell in ipairs(cells) do
       widths[i] = math.max(widths[i] or 0, width_of(cell))
     end
   end
 
   local function table_width()
+    if #widths == 0 then
+      return 0
+    end
     local total = 2 + #gap * (#widths - 1)
     for _, w in ipairs(widths) do
       total = total + w
@@ -143,53 +280,65 @@ local function build()
 
   local _, footer_width = footer(math.huge)
   local minimum = math.max(64, math.floor(vim.o.columns * 0.5))
-  local target = math.max(table_width(), footer_width + 2, minimum)
+  local target = math.max(table_width(), footer_width + 2, width_of(spec.title) + 4, minimum)
   target = math.min(target, vim.o.columns - 4)
-  local foot = footer(target - 2)
-  widths[2] = math.max(widths[2] + target - table_width(), 8)
+  if widths[spec.flex] then
+    widths[spec.flex] = math.max(widths[spec.flex] + target - table_width(), 8)
+  end
 
-  local lines, marks = {}, {}
+  local lines, marks, items = {}, {}, {}
 
-  local function add_row(row, item)
+  local function add_cells(cells, groups, item)
     local line = " "
     local index = #lines
-    for i, cell in ipairs(row) do
-      local text = i == 2 and truncate(cell, widths[2]) or cell
+    for i, cell in ipairs(cells) do
+      local text = i == spec.flex and truncate(cell, widths[i]) or cell
       local start = #line
       line = line .. text .. string.rep(" ", widths[i] - width_of(text))
-      if item and i == 1 then
-        local group = item.done and "NemoryCheck" or "NemoryOpen"
-        table.insert(marks, { index, start, start + #text, group })
-      elseif item and item.done and i > 1 then
-        local group = i == 2 and "NemoryDone" or "NemoryMuted"
+      local group = groups and groups[i]
+      if group and text ~= "" then
         table.insert(marks, { index, start, start + #text, group })
       end
-      if i < #row then
+      if i < #cells then
         line = line .. gap
       end
     end
     table.insert(lines, line .. " ")
+    if item then
+      items[#lines] = item
+    end
   end
 
-  add_row(columns)
-  for i, row in ipairs(cells) do
-    add_row(row, items[i])
+  local function add_line(text, group)
+    text = truncate(text, target)
+    table.insert(lines, text)
+    if group and text ~= "" then
+      table.insert(marks, { #lines - 1, 0, #text, group })
+    end
   end
 
-  if #items == 0 then
-    local key = config.options.view.keys.add
-    local hint = key and (" Nothing to do. Press " .. key .. " to add a todo.") or " Nothing to do."
-    table.insert(lines, hint)
-    table.insert(marks, { #lines - 1, 0, #hint, "NemoryMuted" })
+  if spec.header then
+    add_cells(spec.header)
+  end
+  for _, row in ipairs(spec.rows) do
+    if row.cells then
+      add_cells(row.cells, row.groups, row.item)
+    else
+      add_line(row.line, row.group)
+    end
+  end
+  if #spec.rows == 0 then
+    add_line(" " .. spec.empty, "NemoryMuted")
   end
 
   return {
     lines = lines,
     marks = marks,
     items = items,
+    header = spec.header ~= nil,
     width = target,
-    footer = foot,
-    title = title(all),
+    title = spec.title,
+    footer = (footer(target - 2)),
   }
 end
 
@@ -208,33 +357,49 @@ local function layout(view)
   }
 end
 
-local function last_row()
-  return math.max(first_row, first_row + #state.rows - 1)
+local function find_item(from, step)
+  local count = vim.api.nvim_buf_line_count(state.buf)
+  local row = from
+  while row >= 1 and row <= count do
+    if state.items[row] then
+      return row
+    end
+    row = row + step
+  end
 end
 
-local function clamp_cursor()
+local function snap()
   if not vim.api.nvim_win_is_valid(state.win) then
     return
   end
   local row = vim.api.nvim_win_get_cursor(state.win)[1]
-  local clamped = math.max(first_row, math.min(row, last_row()))
-  vim.api.nvim_win_set_cursor(state.win, { clamped, 0 })
+  if not state.items[row] then
+    local step = row >= state.cursor and 1 or -1
+    row = find_item(row, step) or find_item(row, -step)
+    if not row then
+      return
+    end
+    vim.api.nvim_win_set_cursor(state.win, { row, 0 })
+  end
+  state.cursor = row
 end
 
-local function render()
+render = function()
   if not vim.api.nvim_buf_is_valid(state.buf) then
     return
   end
 
   local view = build()
-  state.rows = view.items
+  state.items = view.items
 
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, view.lines)
   vim.bo[state.buf].modifiable = false
 
   vim.api.nvim_buf_clear_namespace(state.buf, ns, 0, -1)
-  vim.api.nvim_buf_set_extmark(state.buf, ns, 0, 0, { line_hl_group = "NemoryHeader" })
+  if view.header then
+    vim.api.nvim_buf_set_extmark(state.buf, ns, 0, 0, { line_hl_group = "NemoryHeader" })
+  end
   for _, mark in ipairs(view.marks) do
     local opts = { end_col = mark[3], hl_group = mark[4] }
     vim.api.nvim_buf_set_extmark(state.buf, ns, mark[1], mark[2], opts)
@@ -242,8 +407,10 @@ local function render()
 
   if vim.api.nvim_win_is_valid(state.win) then
     vim.api.nvim_win_set_config(state.win, layout(view))
-    vim.wo[state.win].cursorline = #view.items > 0
-    clamp_cursor()
+    vim.wo[state.win].cursorline = next(view.items) ~= nil
+    local row = math.min(state.cursor, #view.lines)
+    vim.api.nvim_win_set_cursor(state.win, { math.max(row, 1), 0 })
+    snap()
   end
 end
 
@@ -251,7 +418,7 @@ local function current()
   if not vim.api.nvim_win_is_valid(state.win) then
     return nil
   end
-  return state.rows[vim.api.nvim_win_get_cursor(state.win)[1] - first_row + 1]
+  return state.items[vim.api.nvim_win_get_cursor(state.win)[1]]
 end
 
 local function on_current(action)
@@ -270,17 +437,83 @@ local function close()
   end
 end
 
-function M.add()
-  vim.ui.input({ prompt = "New todo: " }, function(text)
+local function open_detail(item)
+  local buf = vim.fn.bufadd(item.path)
+  vim.fn.bufload(buf)
+  vim.bo[buf].buflisted = true
+
+  local width = math.min(100, vim.o.columns - 8)
+  local height = math.min(math.max(math.floor(vim.o.lines * 0.6), 10), vim.o.lines - 6)
+  local key = config.options.view.keys.close
+  local foot = nil
+  if key then
+    foot = {
+      { " ", "FloatBorder" },
+      { key, "NemoryKey" },
+      { " save and close", "NemoryMuted" },
+      { " ", "FloatBorder" },
+    }
+  end
+
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = math.floor((vim.o.lines - height) / 2) - 1,
+    col = math.floor((vim.o.columns - width) / 2),
+    style = "minimal",
+    border = "rounded",
+    title = { { " " .. truncate(item.title, width - 4) .. " ", "FloatTitle" } },
+    title_pos = "center",
+    footer = foot,
+    footer_pos = foot and "center" or nil,
+    zindex = 60,
+  })
+  vim.wo[win].wrap = true
+  vim.wo[win].linebreak = true
+
+  if key then
+    vim.keymap.set("n", key, function()
+      if vim.bo[buf].modified then
+        vim.cmd("silent write")
+      end
+      vim.api.nvim_win_close(win, true)
+    end, { buffer = buf, nowait = true, desc = "Nemory: save and close" })
+  end
+
+  vim.api.nvim_create_autocmd("WinClosed", {
+    pattern = tostring(win),
+    once = true,
+    callback = function()
+      if key then
+        pcall(vim.keymap.del, "n", key, { buffer = buf })
+      end
+      vim.schedule(function()
+        if vim.api.nvim_win_is_valid(state.win) then
+          vim.api.nvim_set_current_win(state.win)
+          render()
+        end
+      end)
+    end,
+  })
+
+  vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
+  if #item.body == 0 then
+    vim.cmd.startinsert({ bang = true })
+  end
+end
+
+function M.add(done)
+  vim.ui.input({ prompt = done and "Done: " or "New todo: " }, function(text)
     if text then
-      todo.add(text)
+      todo.add(text, done)
       render()
     end
   end)
 end
 
-local function edit(item)
-  vim.ui.input({ prompt = "Edit todo: ", default = item.text }, function(text)
+local function rename(item)
+  vim.ui.input({ prompt = "Rename todo: ", default = item.title }, function(text)
     if text then
       todo.rename(item, text)
       render()
@@ -288,26 +521,101 @@ local function edit(item)
   end)
 end
 
+local function delete(item)
+  local choice = vim.fn.confirm("Delete " .. item.title .. "?", "&Yes\n&No", 2)
+  if choice == 1 then
+    todo.delete(item)
+    render()
+  end
+end
+
+local function cycle_tag()
+  local tags = all_tags()
+  if #tags == 0 then
+    state.tag = nil
+    return
+  end
+  local index = 0
+  for i, tag in ipairs(tags) do
+    if tag == state.tag then
+      index = i
+    end
+  end
+  state.tag = tags[index + 1]
+end
+
+local function yank_week()
+  local monday, days = week_days()
+  local out = { "## " .. week_title(monday) }
+  for _, day in ipairs(days) do
+    if #day.items > 0 then
+      table.insert(out, "")
+      table.insert(out, "### " .. os.date("%A", day.time) .. " " .. date.short(day.time))
+      for _, item in ipairs(day.items) do
+        table.insert(out, "- " .. item.title)
+      end
+    end
+  end
+  vim.fn.setreg("+", table.concat(out, "\n"))
+  vim.notify("nemory: copied " .. week_title(monday))
+end
+
+local function with_mode(mode, action)
+  return function()
+    if state.mode == mode then
+      action()
+    end
+  end
+end
+
 local function set_keymaps(buf)
   local keys = config.options.view.keys
   local actions = {
-    toggle = on_current(todo.toggle),
-    add = M.add,
-    edit = function()
+    toggle = with_mode("todos", on_current(todo.toggle)),
+    add = with_mode("todos", function()
+      M.add(false)
+    end),
+    open = function()
       local item = current()
       if item then
-        edit(item)
+        open_detail(item)
       end
     end,
-    delete = on_current(todo.delete),
-    toggle_completed = function()
+    rename = function()
+      local item = current()
+      if item then
+        rename(item)
+      end
+    end,
+    delete = with_mode("todos", function()
+      local item = current()
+      if item then
+        delete(item)
+      end
+    end),
+    toggle_completed = with_mode("todos", function()
       state.hide_completed = not state.hide_completed
       render()
+    end),
+    filter = function()
+      cycle_tag()
+      render()
     end,
-    open_file = function()
-      close()
-      vim.cmd.edit(vim.fn.fnameescape(todo.path()))
+    week = function()
+      state.mode = state.mode == "week" and "todos" or "week"
+      state.week = 0
+      state.cursor = 1
+      render()
     end,
+    prev_week = with_mode("week", function()
+      state.week = state.week - 1
+      render()
+    end),
+    next_week = with_mode("week", function()
+      state.week = state.week + 1
+      render()
+    end),
+    yank = with_mode("week", yank_week),
     close = close,
   }
   for name, action in pairs(actions) do
@@ -318,9 +626,16 @@ local function set_keymaps(buf)
   end
 end
 
-function M.open()
+function M.open(mode)
   if state.hide_completed == nil then
     state.hide_completed = config.options.view.hide_completed
+  end
+  if mode and mode ~= state.mode then
+    state.mode = mode
+    state.cursor = 1
+  end
+  if state.mode == "week" then
+    state.week = 0
   end
 
   if vim.api.nvim_win_is_valid(state.win) then
@@ -340,10 +655,9 @@ function M.open()
   state.win = vim.api.nvim_open_win(state.buf, true, win_config)
   vim.wo[state.win].wrap = false
 
-  vim.api.nvim_create_autocmd("CursorMoved", { buffer = state.buf, callback = clamp_cursor })
+  vim.api.nvim_create_autocmd("CursorMoved", { buffer = state.buf, callback = snap })
   set_keymaps(state.buf)
   render()
-  vim.api.nvim_win_set_cursor(state.win, { first_row, 0 })
   sync.pull(render)
 end
 

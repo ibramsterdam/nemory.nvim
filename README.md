@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.svg" alt="nemory: a developer thinking behind a laptop, with a thought cloud that fills up with todos and a work log" width="820">
+<img src="assets/banner.svg" alt="nemory: a developer thinking behind a laptop, with a thought cloud that fills up with todos and a weekly log" width="820">
 
 <br>
 
@@ -11,8 +11,8 @@
 
 **Remember what you did. Keep track of what's next.**
 
-A weekly work log and a todo list, one key away in Neovim.
-Plain markdown files, synced between your computers with git if you want.
+Todos with notes, and a weekly log of everything you finished.
+One key away in Neovim. Plain markdown, synced with git if you want.
 
 </div>
 
@@ -20,15 +20,17 @@ Plain markdown files, synced between your computers with git if you want.
 
 ## Why
 
-At the end of the week you forget what you did on Monday. And private todos end up on sticky
-notes, in five different apps, or nowhere.
+During work you think of things to do all day. At the end of the week you forget what you
+actually did.
 
-nemory keeps both in Neovim, where you already are.
+nemory keeps both in one place. You write todos as you go. When you finish one, it shows up in
+your week. Standups and reviews write themselves.
 
-- 📓 **Work log**: one file per week, with a heading per day. Great for standups and reviews.
-- ✅ **Todos**: a clean overview table. Each todo saves when you created it and when you finished it.
-- 🔄 **Sync**: point it at a private git repo and your notes follow you to every computer.
-- 🪶 **Tiny**: a few hundred lines of Lua, zero dependencies.
+- ✅ **Todos**: a clean overview table. Each todo has a title, and notes when you need them.
+- 📅 **Your week**: everything you finished, grouped per day. Copy it as markdown in one key.
+- 🏷️ **Tags**: keep `#work` and `#private` apart, and filter on them.
+- 🔄 **Sync**: point it at a private git repo and your todos follow you to every computer.
+- 🪶 **Tiny**: plain Lua, zero dependencies.
 
 ## Quick start
 
@@ -41,68 +43,85 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 }
 ```
 
-That's it. Your notes live in `~/notes`.
+That's it. Your todos live in `~/notes/todos`.
 
-- Press `<leader>nw` and write down what you did today.
-- Press `<leader>na` to add a todo.
+- Press `<leader>na` and type `Fix the flaky spec #work`.
 - Press `<leader>nt` to see all your todos.
+- Press `<leader>nw` to see what you finished this week.
 
-## The work log
+## Todos
 
-`<leader>nw` opens this week's file and jumps to today. A new day gets its own heading.
+`<leader>nt` opens the overview table.
+
+```
+╭──────────────────────────── Todo · 2 open ─────────────────────────────╮
+│     Todo                      Tags      Created      Done         Age  │
+│ ○   Write migration plan  ≡   #work     2026-10-03                1d   │
+│ ○   Renew passport            #private  2026-10-02                2d   │
+│ ✓   Ship payments API     ≡   #work     2026-09-25   2026-10-01   6d   │
+╰─ x done  a add  ↵ open  r rename  dd delete  H hide done  t tag  w week ─╯
+```
+
+- Open todos come first, oldest at the top.
+- `≡` means the todo has notes.
+- Age is how long a todo has been open, or how long it took to finish.
+
+Press `↵` to open a todo and write notes. Press `q` to save and go back to the table.
+
+### Tags
+
+Add tags with `#` when you create a todo:
+
+```
+Renew passport #private
+Prep the demo #work #urgent
+```
+
+Only words that start with a letter become tags. So `Review PR #482` keeps `#482` in the title.
+
+Press `t` in the table to filter by tag. Press it again for the next tag, until you are back
+at all todos.
+
+## Your week
+
+`<leader>nw` shows everything you finished this week, grouped per day.
+
+```
+╭──────────── Week 40 · Sep 28 to Oct 4 ────────────╮
+│ Tuesday · Sep 29                                  │
+│   ✓   Fix flaky checkout spec          ≡   #work  │
+│   ✓   Review PR #482                       #work  │
+│                                                   │
+│ Thursday · Oct 1                                  │
+│   ✓   Ship payments API                ≡   #work  │
+╰─ [ prev  ] next  y copy  ↵ open  t tag  w todos ──╯
+```
+
+- `[` and `]` go to the previous or next week.
+- `t` filters by tag, so you can show only `#work`.
+- `y` copies the week as markdown, ready for a standup or a review.
+
+Did something without a todo? Press `<leader>nd` to log it as done right away.
+
+## Files
+
+Every todo is a markdown file, like `todos/2026-10-04-write-migration-plan.md`:
 
 ```markdown
-# Week 40, 2026 (Sep 28 to Oct 4)
+---
+title: Write migration plan
+created: 2026-10-03
+done:
+tags: work
+---
 
-## 2026-09-28 Monday
-
-- Shipped the payments API
-- Reviewed 3 PRs
-
-## 2026-09-29 Tuesday
-
-- Fixed the flaky checkout spec
+Steps:
+- backup the database
+- run the migration on staging first
 ```
 
-Files are named by ISO week, like `worklog/2026-W40.md`. One week fits on one screen, so looking
-back is quick.
-
-## The todo list
-
-`<leader>nt` opens an overview table in a floating window.
-
-```
-╭──────────────────────── Todo · 2 open ────────────────────────╮
-│     Todo                     Created      Done         Age     │
-│ ○   Fix bike tyre            2026-10-02                2d      │
-│ ○   Renew passport           2026-10-04                0d      │
-│ ✓   Call dentist             2026-09-28   2026-10-01   3d      │
-╰─ x done  a add  e edit  dd delete  H hide done  o file  q close ─╯
-```
-
-Open todos come first, oldest at the top. Age shows how long a todo has been open, or how long
-it took to finish.
-
-Keys inside the table:
-
-| Key | Action |
-| --- | --- |
-| `x` | Mark as done or not done |
-| `a` | Add a todo |
-| `e` | Edit the text |
-| `dd` | Delete |
-| `H` | Hide or show done todos |
-| `o` | Open `todo.md` itself |
-| `q` | Close |
-
-Behind the table is a plain markdown file. You can edit it by hand at any time.
-
-```markdown
-# Todo
-
-- [ ] Renew passport @created(2026-10-04)
-- [x] Call dentist @created(2026-09-28) @done(2026-10-01)
-```
+You can edit these files by hand at any time. One file per todo also means git rarely runs into
+merge conflicts when you sync.
 
 ## Sync between computers
 
@@ -125,22 +144,39 @@ Sync is off by default. To turn it on:
 
 What happens then:
 
-- Before nemory opens your notes, it pulls the latest changes. At most once a minute.
-- After you save a note or change a todo, it commits and pushes in the background.
+- Before nemory opens the table, it pulls the latest changes. At most once a minute.
+- After you change a todo, it commits and pushes in the background.
 - `:Nemory sync` pulls and pushes right away.
 
 Everything runs async. Neovim never blocks. If you're offline, nemory warns you and pushes
-on the next save.
+on the next change.
 
 ## Commands & keys
 
 | Mapping | Command | Action |
 | --- | --- | --- |
-| `<leader>nw` | `:Nemory worklog` | Open this week's work log |
 | `<leader>nt` | `:Nemory todos` | Open the todo table |
 | `<leader>na` | `:Nemory add` | Add a todo from anywhere |
+| `<leader>nd` | `:Nemory done` | Log something you did, already done |
+| `<leader>nw` | `:Nemory week` | Open this week |
 | `<leader>ns` | `:Nemory search` | Search all notes (Telescope, if installed) |
 | | `:Nemory sync` | Pull and push now |
+
+Keys inside the window:
+
+| Key | Todos | Week |
+| --- | --- | --- |
+| `x` | Mark as done or not done | |
+| `a` | Add a todo | |
+| `↵` | Open the todo and its notes | Open the todo and its notes |
+| `r` | Rename | Rename |
+| `dd` | Delete | |
+| `H` | Hide or show done todos | |
+| `t` | Filter by tag | Filter by tag |
+| `w` | Go to the week | Go to the todos |
+| `[` `]` | | Previous or next week |
+| `y` | | Copy the week as markdown |
+| `q` | Close | Close |
 
 ## Configuration
 
@@ -149,17 +185,18 @@ These are the defaults. Pass only what you want to change:
 ```lua
 require("nemory").setup({
   dir = "~/notes",
-  worklog_dir = "worklog",
-  todo_file = "todo.md",
+  todo_dir = "todos",
+  default_tags = {},
   sync = {
     enabled = false,
     commit_message = "Update notes",
     pull_interval = 60,
   },
   keys = {
-    worklog = "<leader>nw",
     todos = "<leader>nt",
     add_todo = "<leader>na",
+    log_done = "<leader>nd",
+    week = "<leader>nw",
     search = "<leader>ns",
   },
   view = {
@@ -167,17 +204,23 @@ require("nemory").setup({
     keys = {
       toggle = "x",
       add = "a",
-      edit = "e",
+      open = "<CR>",
+      rename = "r",
       delete = "dd",
       toggle_completed = "H",
-      open_file = "o",
+      filter = "t",
+      week = "w",
+      prev_week = "[",
+      next_week = "]",
+      yank = "y",
       close = "q",
     },
   },
 })
 ```
 
-Set any key to `false` to turn it off.
+- Set any key to `false` to turn it off.
+- `default_tags` are used when you add a todo without tags. For example `{ "work" }`.
 
 ## The name
 

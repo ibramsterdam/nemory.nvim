@@ -2,17 +2,18 @@ local M = {}
 
 M.defaults = {
   dir = "~/notes",
-  worklog_dir = "worklog",
-  todo_file = "todo.md",
+  todo_dir = "todos",
+  default_tags = {},
   sync = {
     enabled = false,
     commit_message = "Update notes",
     pull_interval = 60,
   },
   keys = {
-    worklog = "<leader>nw",
     todos = "<leader>nt",
     add_todo = "<leader>na",
+    log_done = "<leader>nd",
+    week = "<leader>nw",
     search = "<leader>ns",
   },
   view = {
@@ -20,10 +21,15 @@ M.defaults = {
     keys = {
       toggle = "x",
       add = "a",
-      edit = "e",
+      open = "<CR>",
+      rename = "r",
       delete = "dd",
       toggle_completed = "H",
-      open_file = "o",
+      filter = "t",
+      week = "w",
+      prev_week = "[",
+      next_week = "]",
+      yank = "y",
       close = "q",
     },
   },

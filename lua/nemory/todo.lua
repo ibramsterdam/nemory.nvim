@@ -4,117 +4,182 @@ local sync = require("nemory.sync")
 
 local M = {}
 
-local date_pattern = "(%d%d%d%d%-%d%d%-%d%d)"
+local tag_pattern = "%s#(%a[%w_-]*)"
 
-local function path()
-  return config.path(config.options.todo_file)
+local function dir()
+  return config.path(config.options.todo_dir)
 end
 
-local function read()
-  if vim.uv.fs_stat(path()) then
-    return vim.fn.readfile(path())
+local function slug(title)
+  local value = title:lower():gsub("[^%w]+", "-"):gsub("^-+", ""):gsub("-+$", "")
+  value = value:sub(1, 50):gsub("-+$", "")
+  return value ~= "" and value or "todo"
+end
+
+local function present(value)
+  if value == nil or value == "" then
+    return nil
   end
-  return { "# Todo", "" }
+  return value
 end
 
-local function write(lines)
-  vim.fn.mkdir(vim.fs.dirname(path()), "p")
-  vim.fn.writefile(lines, path())
+local function split_tags(value)
+  local tags = {}
+  for tag in (value or ""):gmatch("[^,%s]+") do
+    table.insert(tags, (tag:gsub("^#", "")))
+  end
+  return tags
+end
+
+local function parse(path)
+  local lines = vim.fn.readfile(path)
+  if lines[1] ~= "---" then
+    return nil
+  end
+
+  local meta, finish = {}, nil
+  for i = 2, #lines do
+    if lines[i] == "---" then
+      finish = i
+      break
+    end
+    local key, value = lines[i]:match("^(%w+):%s*(.-)%s*$")
+    if key then
+      meta[key] = value
+    end
+  end
+  if not finish then
+    return nil
+  end
+
+  local body = vim.list_slice(lines, finish + 1)
+  while body[1] == "" do
+    table.remove(body, 1)
+  end
+  while #body > 0 and body[#body] == "" do
+    table.remove(body)
+  end
+
+  local completed = present(meta.done)
+  return {
+    path = path,
+    title = present(meta.title) or vim.fn.fnamemodify(path, ":t:r"),
+    created = present(meta.created),
+    completed = completed,
+    done = completed ~= nil,
+    tags = split_tags(meta.tags),
+    body = body,
+  }
+end
+
+local function field(key, value)
+  if value == nil or value == "" then
+    return key .. ":"
+  end
+  return key .. ": " .. value
+end
+
+local function write(todo)
+  local lines = {
+    "---",
+    field("title", todo.title),
+    field("created", todo.created),
+    field("done", todo.completed),
+    field("tags", table.concat(todo.tags, ", ")),
+    "---",
+    "",
+  }
+  vim.list_extend(lines, todo.body)
+  vim.fn.mkdir(dir(), "p")
+  vim.fn.writefile(lines, todo.path)
   vim.cmd.checktime()
   sync.push()
 end
 
-local function parse(line, index)
-  local mark, rest = line:match("^%- %[([ xX])%] (.*)$")
-  if not mark then
-    return nil
-  end
-  local text = rest:gsub("%s*@created%b()", ""):gsub("%s*@done%b()", "")
-  return {
-    line = index,
-    raw = line,
-    text = vim.trim(text),
-    done = mark ~= " ",
-    created = rest:match("@created%(" .. date_pattern .. "%)"),
-    completed = rest:match("@done%(" .. date_pattern .. "%)"),
-  }
-end
-
-local function format(todo)
-  local parts = { "- [" .. (todo.done and "x" or " ") .. "] " .. todo.text }
-  if todo.created then
-    table.insert(parts, "@created(" .. todo.created .. ")")
-  end
-  if todo.completed then
-    table.insert(parts, "@done(" .. todo.completed .. ")")
-  end
-  return table.concat(parts, " ")
-end
-
 local function update(todo, change)
-  local lines = read()
-  if lines[todo.line] ~= todo.raw then
-    local message = "nemory: " .. config.options.todo_file .. " changed on disk, try again"
-    vim.notify(message, vim.log.levels.WARN)
+  local fresh = vim.uv.fs_stat(todo.path) and parse(todo.path)
+  if not fresh then
+    vim.notify("nemory: " .. todo.path .. " is gone or not a todo", vim.log.levels.WARN)
     return
   end
-  local replacement = change(vim.deepcopy(todo))
-  if replacement then
-    lines[todo.line] = format(replacement)
-  else
-    table.remove(lines, todo.line)
-  end
-  write(lines)
+  change(fresh)
+  write(fresh)
 end
 
 function M.list()
   local todos = {}
-  for i, line in ipairs(read()) do
-    local todo = parse(line, i)
-    if todo then
-      table.insert(todos, todo)
+  if not vim.uv.fs_stat(dir()) then
+    return todos
+  end
+  for name, kind in vim.fs.dir(dir()) do
+    if kind == "file" and name:match("%.md$") then
+      local todo = parse(vim.fs.joinpath(dir(), name))
+      if todo then
+        table.insert(todos, todo)
+      end
     end
   end
   return todos
 end
 
-function M.add(text)
-  text = vim.trim(text or "")
-  if text == "" then
-    return
+function M.add(input, done)
+  local padded = " " .. (input or "")
+  local tags = {}
+  for tag in padded:gmatch(tag_pattern) do
+    table.insert(tags, tag)
   end
-  local lines = read()
-  table.insert(lines, format({ text = text, done = false, created = date.today() }))
-  write(lines)
+  local title = vim.trim((padded:gsub("%s#%a[%w_-]*", ""):gsub("%s+", " ")))
+  if title == "" then
+    return nil
+  end
+  if #tags == 0 then
+    tags = vim.deepcopy(config.options.default_tags)
+  end
+
+  local today = date.today()
+  local base = vim.fs.joinpath(dir(), today .. "-" .. slug(title))
+  local path, n = base .. ".md", 2
+  while vim.uv.fs_stat(path) do
+    path = base .. "-" .. n .. ".md"
+    n = n + 1
+  end
+
+  local todo = {
+    path = path,
+    title = title,
+    created = today,
+    completed = done and today or nil,
+    done = done or false,
+    tags = tags,
+    body = {},
+  }
+  write(todo)
+  return todo
 end
 
 function M.toggle(todo)
-  update(todo, function(t)
-    t.done = not t.done
-    t.completed = t.done and date.today() or nil
-    return t
+  update(todo, function(fresh)
+    if fresh.completed then
+      fresh.completed = nil
+    else
+      fresh.completed = date.today()
+    end
   end)
 end
 
-function M.rename(todo, text)
-  text = vim.trim(text or "")
-  if text == "" then
+function M.rename(todo, title)
+  title = vim.trim(title or "")
+  if title == "" then
     return
   end
-  update(todo, function(t)
-    t.text = text
-    return t
+  update(todo, function(fresh)
+    fresh.title = title
   end)
 end
 
 function M.delete(todo)
-  update(todo, function()
-    return nil
-  end)
-end
-
-function M.path()
-  return path()
+  os.remove(todo.path)
+  sync.push()
 end
 
 return M
